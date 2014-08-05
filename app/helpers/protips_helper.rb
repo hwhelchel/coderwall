@@ -314,11 +314,11 @@ module ProtipsHelper
   end
 
   def best_stat_value(protip)
-    protip.best_stat.is_a?(Tire::Results::Item) ? protip.best_stat.value.to_i : protip.best_stat[1]
+    protip.best_stat.is_a?(Elasticsearch::Model::Response::Result) ? protip.best_stat.value.to_i : protip.best_stat[1]
   end
 
   def best_stat_name(protip)
-    protip.best_stat.is_a?(Tire::Results::Item) ? protip.best_stat.name : protip.best_stat[0]
+    protip.best_stat.is_a?(Elasticsearch::Model::Response::Result) ? protip.best_stat.name : protip.best_stat[0]
   end
 
   def protip_networks(protip)

@@ -82,7 +82,7 @@ gem 'stripe', github: 'stripe/stripe-ruby'
 gem 'feedjira'
 
 # ElasticSearch client
-gem 'tire'
+gem 'elasticsearch-model'
 
 # HTTP client
 gem 'rest-client'

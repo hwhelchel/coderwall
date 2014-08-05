@@ -154,5 +154,5 @@ unless Rails.env.staging? || Rails.env.production?
   Protip.rebuild_index
   
   #Team.rebuild_index #TODO: Disabled until switched from mongo
-  Team.all.each { |team| team.tire.update_index }
+  Team.all.each { |team| team.update_document }
 end

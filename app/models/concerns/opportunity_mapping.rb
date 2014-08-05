@@ -4,7 +4,7 @@ module OpportunityMapping
   included do
     settings analysis: { analyzer: { comma: { 'type'    => 'pattern',
                                               'pattern' => ',' } } }
-    mapping show: { properties: {
+    mappings show: { properties: {
         public_id:        { type: 'string', index: 'not_analyzed' },
         name:             { type: 'string', boost: 100, analyzer: 'snowball' },
         description:      { type: 'string', boost: 100, analyzer: 'snowball' },

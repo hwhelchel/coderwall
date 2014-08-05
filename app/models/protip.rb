@@ -9,7 +9,7 @@ class Protip < ActiveRecord::Base
   # TODO: Break out the various responsibilities on the Protip into modules/concerns.
 
   include NetValidators
-  include Tire::Model::Search
+  include Searchable
   include Scoring::HotStream
   include SearchModule
   include Rakismet::Model
@@ -141,13 +141,13 @@ class Protip < ActiveRecord::Base
       tag_ids = process_tags_for_search(tags)
       tag_ids = [0] if !tags.blank? and tag_ids.blank?
 
-      Protip.tire.index.refresh if Rails.env.test?
+      Protip.refresh_index! if Rails.env.test?
       filters = []
       filters << {term: {upvoters: bookmarked_by}} unless bookmarked_by.nil?
       filters << {term: {'user.user_id' => author}} unless author.nil?
       Rails.logger.debug "SEARCH: query=#{query}, tags=#{tags}, team=#{team}, author=#{author}, bookmarked_by=#{bookmarked_by}, execution=#{execution}, sorts=#{sorts} from query-string=#{query_string}, #{options.inspect}"  if ENV['DEBUG']
       begin
-        tire.search(options) do
+        super(options) do
           query { string query, default_operator: 'AND', use_dis_max: true } unless query.blank?
           filter :terms, tag_ids: tag_ids, execution: execution unless tag_ids.blank?
           filter :term, teams: team unless team.nil?
@@ -161,7 +161,7 @@ class Protip < ActiveRecord::Base
           # sort { by [sorts] }
           #sort { by [{:upvotes => 'desc' }] }
         end
-      rescue Tire::Search::SearchRequestFailed => e
+      rescue # TODO: Determine ElasticSearch exception Class
         SearchResultsWrapper.new(nil, "Looks like our search servers are out to lunch. Try again soon.")
       end
     end
@@ -223,7 +223,7 @@ class Protip < ActiveRecord::Base
 
     def search_trending_by_team(team_id, query_string, page, per_page)
       options = { page: page, per_page: per_page }
-      force_index_commit = Protip.tire.index.refresh if Rails.env.test?
+      force_index_commit = Protip.refresh_index! if Rails.env.test?
       query = "team.name:#{team_id.to_s}"
       query              += " #{query_string}" unless query_string.nil?
       Protip.search(query, [], page: page, per_page: per_page)
@@ -334,7 +334,7 @@ class Protip < ActiveRecord::Base
     end
 
     def index_search_after_destroy
-      self.tire.update_index
+      delete_document
     end
 
 

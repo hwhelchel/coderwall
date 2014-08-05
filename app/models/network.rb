@@ -1,10 +1,10 @@
 # encoding: utf-8
 class Network < ActiveRecord::Base
-  include Tire::Model::Search
+  include Searchable
 
   settings analysis: { analyzer: { exact_term_search: { "type"      => "keyword",
                                                         "tokenizer" => "keyword" } } }
-  mapping show: { properties: {
+  mappings show: { properties: {
     name:          { type: 'string', boost: 100, index: 'not_analyzed' },
     protips_count: { type: 'integer', index: 'not_analyzed' },
     upvotes:       { type: 'integer', index: 'not_analyzed' },

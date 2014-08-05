@@ -2,12 +2,7 @@ module SearchModule
   module ClassMethods
     def rebuild_index(name = nil)
       raise 'Unable to rebuild search index in production because it is disabled by Bonsai' if Rails.env.staging? || Rails.env.production?
-      klass = self
-      Tire.index name || self.index_name || self.class.name do
-        delete
-        create
-        klass.find_in_batches { |batch| import batch }
-      end
+      self.import force: true, index: name
     end
   end
 
@@ -28,31 +23,31 @@ module SearchModule
     def execute
       query_criteria, filter_criteria, sort_criteria, facets, context = [@query, @scope, @sort, @facet, @context]
 
-      @context.tire.search(@options) do
+      @context.__elasticsearch__.search(@options) do
         query do
-          signature = query_criteria.to_tire
+          signature = query_criteria.to_elasticsearch
           method = signature.shift
           self.send(method, *signature)
-        end unless query_criteria.nil? || query_criteria.to_tire.blank?
+        end unless query_criteria.nil? || query_criteria.to_elasticsearch.blank?
 
-        filter_criteria.to_tire.each do |fltr|
+        filter_criteria.to_elasticsearch.each do |fltr|
           filter *fltr
         end unless filter_criteria.nil?
 
         sort do
-          sort_criteria.to_tire.each do |k|
+          sort_criteria.to_elasticsearch.each do |k|
             by k
           end
         end unless sort_criteria.nil?
 
         ap facets if ENV['DEBUG']
-        ap facets.to_tire unless facets.nil?  if ENV['DEBUG']
+        ap facets.to_elasticsearch unless facets.nil?  if ENV['DEBUG']
         # Eval ? Really ?
-        eval(facets.to_tire) unless facets.nil?
+        eval(facets.to_elasticsearch) unless facets.nil?
 
         Rails.logger.debug ("[search](#{context.to_s}):" + JSON.pretty_generate(to_hash))
       end
-    rescue Tire::Search::SearchRequestFailed, Errno::ECONNREFUSED
+    rescue StandardError, Errno::ECONNREFUSED # TODO: determine ElasticSearch Error
       if @options[:failover].nil?
         raise
       else
@@ -75,7 +70,7 @@ module SearchModule
         @filter = to_hash
       end
 
-      def to_tire
+      def to_elasticsearch
         @filter
       end
 
@@ -84,7 +79,7 @@ module SearchModule
       end
 
       def <<(other)
-        @filter.deep_merge(other.to_tire)
+        @filter.deep_merge(other.to_elasticsearch)
         self
       end
     end
@@ -95,13 +90,13 @@ module SearchModule
         @direction = direction
       end
 
-      def to_tire
+      def to_elasticsearch
         @fields.map do |field|
           {field => {order: @direction}}
         end
       end
 
-      alias_method :to_s, :to_tire
+      alias_method :to_s, :to_elasticsearch
     end
 
     class Query
@@ -114,7 +109,7 @@ module SearchModule
         @default_operator = default_operator
       end
 
-      def to_tire
+      def to_elasticsearch
         [:string, "#{@query_string}", {default_operator: "#{@default_operator}"}] unless @query_string.blank?
       end
     end
@@ -135,7 +130,7 @@ module SearchModule
           "end"
       end
 
-      def to_tire
+      def to_elasticsearch
         @facet
       end
 

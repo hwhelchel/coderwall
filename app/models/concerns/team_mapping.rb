@@ -2,7 +2,7 @@ module TeamMapping
   extend ActiveSupport::Concern
 
   included do
-    mapping team: {
+    mappings team: {
         properties: {
             id:                 { type: 'string', index: 'not_analyzed' },
             slug:               { type: 'string', index: 'not_analyzed' },

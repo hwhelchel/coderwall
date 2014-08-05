@@ -1,8 +1,8 @@
 require 'search'
 
 class Opportunity < ActiveRecord::Base
-  include Tire::Model::Search
-  include Tire::Model::Callbacks
+  include Searchable
+  include Elasticsearch::Model::Callbacks
   include SearchModule
   include OpportunityMapping
 
@@ -284,7 +284,7 @@ class Opportunity < ActiveRecord::Base
   end
 
   def remove_from_index
-    self.class.tire.index.remove self
+    delete_document
   end
 end
 

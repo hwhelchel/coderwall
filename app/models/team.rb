@@ -5,7 +5,7 @@ require 'search'
 class Team
   include Mongoid::Document
   include Mongoid::Timestamps
-  include Tire::Model::Search
+  include Searchable
   include LeaderboardRedisRank
   include SearchModule
 
@@ -139,12 +139,12 @@ class Team
       end
       #query += "country:#{country}" unless country.nil?
       begin
-        tire.search(load: false, search_type: search_type, page: page, per_page: per_page) do
+        super(load: false, search_type: search_type, page: page, per_page: per_page) do
           query { string query, default_operator: 'AND' } if query_string.present?
           filter :term, country: country unless country.nil?
           sort { by [{ score: 'desc', total_member_count: 'desc', '_score' => {} }] }
         end
-      rescue Tire::Search::SearchRequestFailed => e
+      rescue # TODO: Determine ElasticSearch Error
         SearchResultsWrapper.new(nil, "Looks like our teams server is down. Try again soon.")
       end
     end
@@ -817,7 +817,7 @@ class Team
 
   def reindex_search
     if Rails.env.development? or Rails.env.test? or self.destroyed?
-      self.tire.update_index
+      update_document
     else
       IndexTeamJob.perform_async(id)
     end
